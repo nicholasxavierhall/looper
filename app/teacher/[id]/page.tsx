@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useParams } from 'next/navigation'
 import { Calendar, Mail, MapPin } from 'lucide-react'
 
 type Teacher = {
@@ -21,7 +21,8 @@ type Class = {
   cost?: number
 }
 
-export default function TeacherProfile({ params }: { params: { id: string } }) {
+export default function TeacherProfile() {
+  const params = useParams<{ id: string }>()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,23 +36,13 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
 
   const loadTeacherData = async () => {
     setLoading(true)
-    
-    const { data: teacherData } = await supabase
-      .from('teachers')
-      .select('*')
-      .eq('id', params.id)
-      .single()
 
-    if (teacherData) {
-      setTeacher(teacherData)
+    const res = await fetch(`/api/teacher/${params.id}`)
 
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', params.id)
-        .order('day_of_week')
-
-      setClasses(classesData || [])
+    if (res.ok) {
+      const { teacher, classes } = await res.json()
+      setTeacher(teacher)
+      setClasses(classes)
     }
 
     setLoading(false)
@@ -63,14 +54,13 @@ export default function TeacherProfile({ params }: { params: { id: string } }) {
 
     setSubscribing(true)
 
-    const { error } = await supabase
-      .from('subscribers')
-      .upsert({
-        teacher_id: teacher.id,
-        email: subscribeEmail
-      })
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherId: teacher.id, email: subscribeEmail })
+    })
 
-    if (!error) {
+    if (res.ok) {
       setSubscribed(true)
       setSubscribeEmail('')
       setTimeout(() => setSubscribed(false), 3000)
