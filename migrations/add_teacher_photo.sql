@@ -1,0 +1,1 @@
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS photo_url TEXT;

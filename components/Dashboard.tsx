@@ -40,10 +40,64 @@ export default function Dashboard() {
     class_type: 'Class',
     cost: 0
   })
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [bio, setBio] = useState('')
+  const [savingBio, setSavingBio] = useState(false)
+  const [bioSaved, setBioSaved] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const teacherUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/teacher/${teacher?.id}`
   const qrValue = teacherUrl
   const terms = getTerminology(teacher?.category)
+
+  useEffect(() => {
+    if (!teacher) return
+    setPhotoUrl(teacher.photo_url)
+    setBio(teacher.bio || '')
+  }, [teacher])
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !teacher) return
+
+    setUploadingPhoto(true)
+
+    const ext = file.name.split('.').pop()
+    const path = `${teacher.id}/avatar.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true })
+
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+      const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+      await supabase
+        .from('teachers')
+        .update({ photo_url: newUrl })
+        .eq('id', teacher.id)
+
+      setPhotoUrl(newUrl)
+    }
+
+    setUploadingPhoto(false)
+  }
+
+  const handleSaveBio = async () => {
+    if (!teacher) return
+    setSavingBio(true)
+
+    await supabase
+      .from('teachers')
+      .update({ bio })
+      .eq('id', teacher.id)
+
+    setSavingBio(false)
+    setBioSaved(true)
+    setTimeout(() => setBioSaved(false), 2000)
+  }
 
   useEffect(() => {
     if (!teacher) return
@@ -185,6 +239,58 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Main content */}
           <div className="md:col-span-2 space-y-8">
+            {/* Profile section */}
+            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">Your Profile</h2>
+              <div className="flex items-center gap-6 mb-6">
+                <div className="relative">
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={teacher?.name}
+                      className="w-20 h-20 rounded-full object-cover border-2 border-sky-100"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-2xl font-bold">
+                      {teacher?.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
+                  >
+                    {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                  </button>
+                </div>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell your followers a bit about you"
+                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
+                rows={3}
+              />
+              <button
+                onClick={handleSaveBio}
+                disabled={savingBio}
+                className="mt-3 bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
+              >
+                {savingBio ? 'Saving...' : bioSaved ? 'Saved ✓' : 'Save Bio'}
+              </button>
+            </div>
+
             {/* Classes section */}
             <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
               <div className="flex justify-between items-center mb-6">

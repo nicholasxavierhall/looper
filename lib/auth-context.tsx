@@ -9,6 +9,7 @@ type Teacher = {
   name: string
   bio?: string
   category?: string
+  photo_url?: string
 }
 
 type AuthContextType = {

@@ -10,6 +10,7 @@ type Teacher = {
   name: string
   bio?: string
   category?: string
+  photo_url?: string
 }
 
 type Class = {
@@ -136,7 +137,20 @@ END:VCALENDAR`
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-8 mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">{teacher.name}</h1>
+          <div className="flex items-center gap-4 mb-2">
+            {teacher.photo_url ? (
+              <img
+                src={teacher.photo_url}
+                alt={teacher.name}
+                className="w-16 h-16 rounded-full object-cover border-2 border-sky-100"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-xl font-bold">
+                {teacher.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <h1 className="text-4xl font-bold text-slate-900">{teacher.name}</h1>
+          </div>
           {teacher.bio && (
             <p className="text-gray-600 text-lg mb-6">{teacher.bio}</p>
           )}
