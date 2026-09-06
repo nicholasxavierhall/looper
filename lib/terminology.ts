@@ -13,13 +13,14 @@ type Terms = {
   activeLabel: string
   addLabel: string
   scheduleLabel: string
+  roleLabel: string
 }
 
 const TERMS: Record<Category, Terms> = {
-  dance: { items: 'Classes', item: 'Class', activeLabel: 'Teaching this week', addLabel: 'Add Class', scheduleLabel: 'Schedule' },
-  dj: { items: 'Sets', item: 'Set', activeLabel: 'Playing this week', addLabel: 'Add Set', scheduleLabel: "This Week's Sets" },
-  music: { items: 'Shows', item: 'Show', activeLabel: 'Performing this week', addLabel: 'Add Show', scheduleLabel: "This Week's Shows" },
-  other: { items: 'Events', item: 'Event', activeLabel: 'Happening this week', addLabel: 'Add Event', scheduleLabel: "This Week's Events" },
+  dance: { items: 'Classes', item: 'Class', activeLabel: 'Teaching this week', addLabel: 'Add Class', scheduleLabel: 'Schedule', roleLabel: 'Instructor' },
+  dj: { items: 'Sets', item: 'Set', activeLabel: 'Playing this week', addLabel: 'Add Set', scheduleLabel: "This Week's Sets", roleLabel: 'DJ' },
+  music: { items: 'Shows', item: 'Show', activeLabel: 'Performing this week', addLabel: 'Add Show', scheduleLabel: "This Week's Shows", roleLabel: 'Musician' },
+  other: { items: 'Events', item: 'Event', activeLabel: 'Happening this week', addLabel: 'Add Event', scheduleLabel: "This Week's Events", roleLabel: 'Performer' },
 }
 
 export function getTerminology(category?: string | null): Terms {

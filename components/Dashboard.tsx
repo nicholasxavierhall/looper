@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
-import { LogOut, Plus, Send, Camera, Pencil, Upload } from 'lucide-react'
+import { Camera, Pencil, Upload } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { getTerminology } from '@/lib/terminology'
 
@@ -18,9 +18,17 @@ type Class = {
   cost?: number
 }
 
-type WeeklyClass = {
-  class_id: string
-  is_active: boolean
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+function toDateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatTime(time: string) {
+  const [h, m] = time.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`
 }
 
 export default function Dashboard() {
@@ -52,9 +60,11 @@ export default function Dashboard() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null)
   const importFileRef = useRef<HTMLInputElement>(null)
+  const [followerCount, setFollowerCount] = useState(0)
+  const [history, setHistory] = useState<{ date: string; preview: string }[]>([])
+  const [showShare, setShowShare] = useState(false)
 
   const teacherUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/teacher/${teacher?.id}`
-  const qrValue = teacherUrl
   const terms = getTerminology(teacher?.category)
 
   useEffect(() => {
@@ -114,6 +124,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (!teacher) return
     loadClasses()
+    loadFollowerCount()
+    loadHistory()
   }, [teacher])
 
   const loadClasses = async () => {
@@ -130,7 +142,7 @@ export default function Dashboard() {
       .eq('week_of', getWeekStart())
 
     setClasses(classesData || [])
-    
+
     const weeklyMap: Record<string, boolean> = {}
     weeklyData?.forEach(w => {
       weeklyMap[w.class_id] = w.is_active
@@ -139,12 +151,62 @@ export default function Dashboard() {
     setLoading(false)
   }
 
+  const loadFollowerCount = async () => {
+    const { count } = await supabase
+      .from('subscribers')
+      .select('id', { count: 'exact', head: true })
+      .eq('teacher_id', teacher!.id)
+    setFollowerCount(count || 0)
+  }
+
+  const loadHistory = async () => {
+    const { data } = await supabase
+      .from('weekly_updates')
+      .select('week_of, message')
+      .eq('teacher_id', teacher!.id)
+      .not('message', 'is', null)
+      .lt('week_of', getWeekStart())
+      .order('week_of', { ascending: false })
+      .limit(5)
+
+    setHistory(
+      (data || []).map(h => ({
+        date: new Date(`${h.week_of}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        preview: h.message
+      }))
+    )
+  }
+
   const getWeekStart = () => {
     const today = new Date()
     const day = today.getDay()
-    const diff = today.getDate() - day
-    return new Date(today.setDate(diff)).toISOString().split('T')[0]
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1)
+    return toDateKey(new Date(today.getFullYear(), today.getMonth(), diff))
   }
+
+  const weekStart = getWeekStart()
+  const todayStr = toDateKey(new Date())
+  const weekDays = DAY_NAMES.map((name, i) => {
+    const [y, m, day] = weekStart.split('-').map(Number)
+    const d = new Date(y, m - 1, day + i)
+    const dateStr = toDateKey(d)
+    const activeClass = classes.find(c => c.day_of_week === name && (weeklyClasses[c.id] ?? true))
+    return {
+      day: name.slice(0, 3),
+      date: d.getDate(),
+      isToday: dateStr === todayStr,
+      hasEvent: !!activeClass,
+      title: activeClass?.name,
+      time: activeClass ? formatTime(activeClass.time) : undefined
+    }
+  })
+  const weekRangeLabel = (() => {
+    const start = new Date(`${weekStart}T00:00:00`)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `${fmt(start)} – ${fmt(end)}`
+  })()
 
   const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -188,8 +250,7 @@ export default function Dashboard() {
 
   const handleSendNewsletter = async () => {
     setSending(true)
-    
-    // Save weekly update message
+
     await supabase
       .from('weekly_updates')
       .upsert({
@@ -198,7 +259,6 @@ export default function Dashboard() {
         message: message || null
       })
 
-    // Send email
     const response = await fetch('/api/send-newsletter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -211,10 +271,11 @@ export default function Dashboard() {
 
     const result = await response.json()
     setSending(false)
-    
+
     if (result.sent) {
       alert(`Newsletter sent to ${result.sent} subscribers!`)
       setMessage('')
+      loadHistory()
     } else {
       alert('No subscribers yet. Share your QR code to get subscribers!')
     }
@@ -250,6 +311,7 @@ export default function Dashboard() {
     setImportResult({ added, skipped: unique.length - added })
     setImportText('')
     setImporting(false)
+    loadFollowerCount()
   }
 
   const handleLogout = async () => {
@@ -257,338 +319,428 @@ export default function Dashboard() {
     window.location.href = '/'
   }
 
+  const handleDownloadQR = () => {
+    const qrElement = document.querySelector('canvas')
+    if (qrElement) {
+      const link = document.createElement('a')
+      link.href = qrElement.toDataURL()
+      link.download = 'looper-qr.png'
+      link.click()
+    }
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(teacherUrl)
+    alert('Link copied!')
+  }
+
   if (loading) {
     return <div className="p-8">Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100">
-      <header className="bg-white border-b border-sky-100 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
-          <div>
-            <img src="/looper-logo.png" alt="Looper" className="h-8 block mb-1" />
-            <p className="text-sm text-gray-600">Welcome, {teacher?.name}</p>
+    <div className="min-h-screen bg-[var(--looper-page-bg)]">
+      <header className="bg-white border-b border-[var(--looper-border)]">
+        <div className="max-w-[1080px] mx-auto px-10 py-[18px] flex justify-between items-center">
+          <img src="/looper-logo.png" alt="Looper" className="h-6 block" />
+
+          <div className="flex items-center gap-2.5 relative">
+            <button
+              onClick={() => setShowShare(!showShare)}
+              className="flex items-center gap-1.5 bg-[var(--looper-chip-bg)] border border-[var(--looper-border-2)] text-[var(--looper-blue)] rounded-[9px] px-3.5 py-2 text-sm font-semibold"
+            >
+              <span className="w-3.5 h-3.5 border-2 border-current rounded-[3px] inline-block" />
+              Share schedule
+            </button>
+
+            {showShare && (
+              <>
+                <button
+                  className="fixed inset-0 z-10 cursor-default"
+                  onClick={() => setShowShare(false)}
+                  aria-label="Close"
+                />
+                <div className="absolute top-12 right-0 w-[260px] bg-white border border-[var(--looper-border-2)] rounded-[14px] shadow-xl p-5 z-20 text-center">
+                  <div className="bg-[var(--looper-chip-bg)] rounded-[10px] flex justify-center p-2 mb-3.5">
+                    <QRCodeCanvas value={teacherUrl} size={130} level="H" includeMargin={false} />
+                  </div>
+                  <div className="text-xs font-mono text-[var(--looper-body)] break-all mb-3">{teacherUrl}</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDownloadQR}
+                      className="flex-1 bg-[var(--looper-chip-bg)] border border-[var(--looper-border-2)] rounded-[8px] py-2 text-xs font-semibold text-[var(--looper-ink)]"
+                    >
+                      Download
+                    </button>
+                    <button
+                      onClick={handleCopyLink}
+                      className="flex-1 bg-[var(--looper-blue)] rounded-[8px] py-2 text-xs font-semibold text-white"
+                    >
+                      Copy link
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="w-8 h-8 rounded-full bg-[var(--looper-blue)] text-white flex items-center justify-center text-[13px] font-bold shrink-0">
+              {teacher?.name?.charAt(0).toUpperCase()}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-sm font-semibold text-[var(--looper-body)] border border-[var(--looper-border-2)] rounded-[8px] px-3.5 py-1.5"
+            >
+              Log out
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-sky-50 rounded-full"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Main content */}
-          <div className="md:col-span-2 space-y-8">
-            {/* Profile section */}
-            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
-              <div className="flex items-start gap-5 mb-2">
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoSelect}
-                  className="hidden"
+      <main className="max-w-[1080px] mx-auto px-10 py-12 pb-[90px] flex flex-col gap-10">
+        {/* Editorial profile hero */}
+        <section className="flex gap-8 items-end flex-wrap">
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="group relative w-[168px] h-[168px] rounded-[18px] shrink-0"
+          >
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={teacher?.name}
+                className="w-[168px] h-[168px] rounded-[18px] object-cover"
+              />
+            ) : (
+              <div className="w-[168px] h-[168px] rounded-[18px] bg-[var(--looper-chip-bg)] flex items-center justify-center text-[var(--looper-blue)] text-5xl font-bold">
+                {teacher?.name?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="absolute inset-0 rounded-[18px] bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+              <Camera size={26} className="text-white" />
+            </div>
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--looper-link)]" />
+              <span className="text-xs font-bold text-[var(--looper-blue)] uppercase tracking-wider">
+                {terms.roleLabel}
+              </span>
+            </div>
+            <h1 className="m-0 text-[44px] font-black tracking-tight leading-none text-[var(--looper-ink)]">
+              {teacher?.name}
+            </h1>
+
+            {editingBio ? (
+              <div className="mt-3.5">
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell your followers a bit about you"
+                  className="w-full px-4 py-3 border border-[var(--looper-border-2)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--looper-link)] resize-none text-[15.5px]"
+                  rows={3}
+                  autoFocus
                 />
-                <button
-                  onClick={() => photoInputRef.current?.click()}
-                  disabled={uploadingPhoto}
-                  className="group relative w-32 h-32 rounded-2xl shrink-0"
-                >
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt={teacher?.name}
-                      className="w-32 h-32 rounded-2xl object-cover border-2 border-sky-100"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600 text-4xl font-bold">
-                      {teacher?.name?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                    <Camera size={26} className="text-white" />
-                  </div>
-                  {uploadingPhoto && (
-                    <div className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center">
-                      <span className="text-white text-xs font-semibold">Uploading...</span>
-                    </div>
-                  )}
-                </button>
-
-                <div className="flex-1 pt-1">
-              {editingBio ? (
-                <>
-                  <textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell your followers a bit about you"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
-                    rows={3}
-                    autoFocus
-                  />
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={handleSaveBio}
-                      disabled={savingBio}
-                      className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
-                    >
-                      {savingBio ? 'Saving...' : 'Save Bio'}
-                    </button>
-                    <button
-                      onClick={handleCancelBio}
-                      className="text-gray-500 hover:text-gray-700 px-4 py-2 text-sm"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <button
-                  onClick={() => setEditingBio(true)}
-                  className="group w-full text-left px-4 py-3 border border-transparent hover:border-sky-200 rounded-2xl transition flex items-start justify-between gap-2"
-                >
-                  <span className={bio ? 'text-gray-700' : 'text-gray-400 italic'}>
-                    {bio || 'Tell your followers a bit about you'}
-                  </span>
-                  <Pencil size={16} className="text-sky-600 opacity-0 group-hover:opacity-100 transition shrink-0 mt-1" />
-                </button>
-              )}
-              {bioSaved && <p className="text-sky-700 text-sm mt-2">Saved ✓</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* Classes section */}
-            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-slate-900">Your {terms.items}</h2>
-                <button
-                  onClick={() => setShowNewClass(!showNewClass)}
-                  className="flex items-center gap-2 bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
-                >
-                  <Plus size={20} />
-                  {terms.addLabel}
-                </button>
-              </div>
-
-              {showNewClass && (
-                <form onSubmit={handleAddClass} className="mb-6 p-4 bg-sky-50 rounded-2xl space-y-4 border-2 border-sky-200">
-                  <input
-                    type="text"
-                    placeholder={`${terms.item} name`}
-                    value={newClass.name}
-                    onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-full"
-                    required
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <select
-                      value={newClass.day_of_week}
-                      onChange={(e) => setNewClass({ ...newClass, day_of_week: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-full"
-                    >
-                      {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="time"
-                      value={newClass.time}
-                      onChange={(e) => setNewClass({ ...newClass, time: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-full"
-                      required
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Location/Studio"
-                    value={newClass.location}
-                    onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-full"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Address (optional)"
-                    value={newClass.address}
-                    onChange={(e) => setNewClass({ ...newClass, address: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-full"
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Class type"
-                      value={newClass.class_type}
-                      onChange={(e) => setNewClass({ ...newClass, class_type: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-full"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Cost (optional)"
-                      value={newClass.cost || ''}
-                      onChange={(e) => setNewClass({ ...newClass, cost: e.target.value ? parseFloat(e.target.value) : 0 })}
-                      className="px-3 py-2 border border-gray-300 rounded-full"
-                    />
-                  </div>
+                <div className="flex gap-2 mt-2">
                   <button
-                    type="submit"
-                    className="w-full bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
+                    onClick={handleSaveBio}
+                    disabled={savingBio}
+                    className="bg-[var(--looper-blue)] text-white rounded-[9px] px-4 py-2 text-sm font-semibold"
                   >
-                    {terms.addLabel}
+                    {savingBio ? 'Saving...' : 'Save Bio'}
                   </button>
-                </form>
-              )}
-
-              {classes.length === 0 ? (
-                <p className="text-gray-600 py-8 text-center">No {terms.items.toLowerCase()} yet. Add your first {terms.item.toLowerCase()}!</p>
-              ) : (
-                <div className="space-y-3">
-                  {classes.map(cls => (
-                    <div key={cls.id} className="p-4 border border-sky-100 rounded-2xl hover:border-sky-300 transition">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold text-slate-900">{cls.name}</h3>
-                          <p className="text-sm text-gray-600">{cls.day_of_week} at {cls.time}</p>
-                          <p className="text-sm text-gray-600">{cls.location}</p>
-                        </div>
-                      </div>
-                      <label className="flex items-center gap-2 mt-3">
-                        <input
-                          type="checkbox"
-                          checked={weeklyClasses[cls.id] ?? true}
-                          onChange={() => handleToggleClass(cls.id, weeklyClasses[cls.id] ?? true)}
-                          className="w-5 h-5 accent-sky-500 rounded"
-                        />
-                        <span className="text-sm text-gray-700">{terms.activeLabel}</span>
-                      </label>
-                    </div>
-                  ))}
+                  <button
+                    onClick={handleCancelBio}
+                    className="text-[var(--looper-body)] px-4 py-2 text-sm"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              )}
-            </div>
-
-            {/* Import contacts section */}
-            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-bold text-slate-900">Import Followers</h2>
-                <button
-                  onClick={() => setShowImport(!showImport)}
-                  className="flex items-center gap-2 bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
-                >
-                  <Upload size={18} />
-                  Import
-                </button>
               </div>
-              {showImport && (
-                <div className="mt-4 space-y-3">
-                  <p className="text-sm text-gray-500">
-                    Already have a list from somewhere else? Paste it below, or upload a file (CSV, text export, anything with email addresses in it) — Looper will pull out the email addresses automatically.
-                  </p>
-                  <input
-                    ref={importFileRef}
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={handleImportFile}
-                    className="hidden"
-                  />
-                  <textarea
-                    value={importText}
-                    onChange={(e) => setImportText(e.target.value)}
-                    placeholder="Paste emails here, or upload a file below"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
-                    rows={4}
-                  />
-                  <div className="flex gap-2">
+            ) : (
+              <button
+                onClick={() => setEditingBio(true)}
+                className="group text-left mt-3.5 flex items-start gap-2"
+              >
+                <p className={`m-0 text-[15.5px] leading-relaxed max-w-[56ch] ${bio ? 'text-[var(--looper-body)]' : 'text-gray-400 italic'}`}>
+                  {bio || 'Tell your followers a bit about you'}
+                </p>
+                <Pencil size={14} className="text-[var(--looper-blue)] opacity-0 group-hover:opacity-100 transition shrink-0 mt-1" />
+              </button>
+            )}
+            {bioSaved && <p className="text-[var(--looper-blue)] text-sm mt-1">Saved ✓</p>}
+
+            <div className="flex gap-5 mt-4">
+              <div>
+                <span className="text-lg font-extrabold text-[var(--looper-ink)]">{followerCount}</span>{' '}
+                <span className="text-[13px] text-[var(--looper-muted)]">followers</span>
+              </div>
+              <div>
+                <span className="text-lg font-extrabold text-[var(--looper-ink)]">{classes.length}</span>{' '}
+                <span className="text-[13px] text-[var(--looper-muted)]">{terms.items.toLowerCase()}/wk</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* This week strip */}
+        <section>
+          <div className="flex items-baseline justify-between mb-3.5">
+            <h2 className="m-0 text-[19px] font-extrabold text-[var(--looper-ink)] tracking-tight">This week</h2>
+            <span className="text-[13px] text-[var(--looper-muted)]">{weekRangeLabel}</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-7 gap-2.5">
+            {weekDays.map((d) => (
+              <div
+                key={d.day}
+                className="rounded-[12px] p-3 box-border"
+                style={{
+                  background: d.isToday ? 'var(--looper-today-bg)' : '#fff',
+                  border: `1px solid ${d.isToday ? 'var(--looper-today-border)' : 'var(--looper-border)'}`,
+                  minHeight: 78
+                }}
+              >
+                <div className={`flex items-baseline gap-1.5 ${d.hasEvent ? 'mb-2.5' : ''}`}>
+                  <span className="text-[11px] font-bold text-[var(--looper-body-2)] uppercase tracking-wide">{d.day}</span>
+                  <span className="text-sm font-extrabold text-[var(--looper-ink-2)]">{d.date}</span>
+                  {d.isToday && <span className="w-1.5 h-1.5 rounded-full bg-[var(--looper-link)]" />}
+                </div>
+                {d.hasEvent && (
+                  <div>
+                    <div className="text-[13.5px] font-bold text-[var(--looper-ink-2)] leading-tight">{d.title}</div>
+                    <div className="text-xs text-[var(--looper-body-2)] mt-0.5">{d.time}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Recurring schedule */}
+        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-7">
+          <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
+            <div>
+              <h2 className="m-0 text-lg font-extrabold text-[var(--looper-ink)]">Recurring schedule</h2>
+              <p className="m-0 mt-1 text-[13px] text-[var(--looper-muted)]">These repeat automatically every week</p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => alert('One-off (single-date) events are coming soon!')}
+                className="bg-white border border-[var(--looper-border-2)] rounded-[9px] px-3.5 py-2 text-sm font-semibold text-[var(--looper-ink)]"
+              >
+                One-off event
+              </button>
+              <button
+                onClick={() => setShowNewClass(!showNewClass)}
+                className="flex items-center gap-1.5 bg-[var(--looper-link)] text-white rounded-[9px] px-4 py-2 text-sm font-bold"
+              >
+                <span className="text-base leading-none">+</span> {terms.addLabel}
+              </button>
+            </div>
+          </div>
+
+          {showNewClass && (
+            <form onSubmit={handleAddClass} className="mb-5 p-4 bg-[var(--looper-chip-bg)] rounded-[12px] space-y-3 border border-[var(--looper-border-2)]">
+              <input
+                type="text"
+                placeholder={`${terms.item} name`}
+                value={newClass.name}
+                onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-[9px]"
+                required
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  value={newClass.day_of_week}
+                  onChange={(e) => setNewClass({ ...newClass, day_of_week: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-[9px]"
+                >
+                  {DAY_NAMES.map(day => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+                <input
+                  type="time"
+                  value={newClass.time}
+                  onChange={(e) => setNewClass({ ...newClass, time: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-[9px]"
+                  required
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Location/Studio"
+                value={newClass.location}
+                onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-[9px]"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Address (optional)"
+                value={newClass.address}
+                onChange={(e) => setNewClass({ ...newClass, address: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-[9px]"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Class type"
+                  value={newClass.class_type}
+                  onChange={(e) => setNewClass({ ...newClass, class_type: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-[9px]"
+                />
+                <input
+                  type="number"
+                  placeholder="Cost (optional)"
+                  value={newClass.cost || ''}
+                  onChange={(e) => setNewClass({ ...newClass, cost: e.target.value ? parseFloat(e.target.value) : 0 })}
+                  className="px-3 py-2 border border-gray-300 rounded-[9px]"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-[var(--looper-blue)] text-white rounded-[9px] px-4 py-2 font-semibold"
+              >
+                {terms.addLabel}
+              </button>
+            </form>
+          )}
+
+          {classes.length === 0 ? (
+            <p className="text-[var(--looper-muted)] py-8 text-center">No {terms.items.toLowerCase()} yet. Add your first {terms.item.toLowerCase()}!</p>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {classes.map(cls => {
+                const active = weeklyClasses[cls.id] ?? true
+                return (
+                  <div key={cls.id} className="flex items-center gap-4 px-4 py-3.5 border border-[var(--looper-border)] rounded-[12px]">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: active ? 'oklch(58% 0.15 155)' : 'oklch(70% 0.01 60)' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14.5px] font-bold text-[var(--looper-ink-2)]">{cls.name}</div>
+                      <div className="text-xs text-[var(--looper-body-2)] mt-0.5">
+                        {cls.day_of_week} · {formatTime(cls.time)} · {cls.location}
+                      </div>
+                    </div>
                     <button
-                      onClick={() => importFileRef.current?.click()}
-                      className="bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
+                      onClick={() => handleToggleClass(cls.id, active)}
+                      className="text-[11.5px] font-bold px-2.5 py-1 rounded-full shrink-0"
+                      style={{
+                        color: active ? 'var(--looper-active-text)' : 'var(--looper-paused-text)',
+                        background: active ? 'var(--looper-active-bg)' : 'var(--looper-paused-bg)'
+                      }}
                     >
-                      Upload File
-                    </button>
-                    <button
-                      onClick={handleImportContacts}
-                      disabled={importing || !importText.trim()}
-                      className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
-                    >
-                      {importing ? 'Importing...' : 'Import Contacts'}
+                      {active ? 'Active' : 'Paused'}
                     </button>
                   </div>
-                  {importResult && (
-                    <p className="text-sm text-sky-700">
-                      Added {importResult.added} new follower{importResult.added === 1 ? '' : 's'}
-                      {importResult.skipped > 0 ? ` (${importResult.skipped} already followed you)` : ''}.
-                    </p>
-                  )}
-                </div>
-              )}
+                )
+              })}
             </div>
+          )}
+        </section>
 
-            {/* Newsletter section */}
-            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">This Week's Message</h2>
+        {/* Import contacts */}
+        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-7">
+          <div className="flex justify-between items-center gap-3 flex-wrap">
+            <div>
+              <h2 className="m-0 text-lg font-extrabold text-[var(--looper-ink)]">Import Followers</h2>
+              <p className="m-0 mt-1 text-[13px] text-[var(--looper-muted)]">Already have a list from somewhere else?</p>
+            </div>
+            <button
+              onClick={() => setShowImport(!showImport)}
+              className="flex items-center gap-1.5 bg-white border border-[var(--looper-border-2)] rounded-[9px] px-3.5 py-2 text-sm font-semibold text-[var(--looper-ink)]"
+            >
+              <Upload size={16} />
+              Import
+            </button>
+          </div>
+          {showImport && (
+            <div className="mt-4 space-y-3">
+              <p className="text-[13px] text-[var(--looper-muted)]">
+                Paste a list below, or upload a file (CSV, text export, anything with email addresses in it) — Looper pulls out the email addresses automatically.
+              </p>
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleImportFile}
+                className="hidden"
+              />
               <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Add a note to your followers (optional)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                placeholder="Paste emails here, or upload a file below"
+                className="w-full px-4 py-3 border border-gray-300 rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--looper-link)] resize-none"
                 rows={4}
               />
-              <button
-                onClick={handleSendNewsletter}
-                disabled={sending}
-                className="mt-4 w-full flex items-center justify-center gap-2 bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-6 py-3 rounded-full font-semibold shadow-md hover:shadow-lg transition"
-              >
-                <Send size={20} />
-                {sending ? 'Sending...' : 'Send Newsletter'}
-              </button>
-            </div>
-          </div>
-
-          {/* Sidebar - QR Code */}
-          <div className="md:col-span-1">
-            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6 sticky top-24">
-              <h2 className="text-xl font-bold text-slate-900 mb-4 text-center">Share Your QR</h2>
-              <div className="bg-sky-50 p-6 rounded-2xl flex justify-center mb-4">
-                <QRCodeCanvas value={qrValue} size={256} level="H" includeMargin={true} />
-              </div>
-              <p className="text-sm text-gray-600 text-center mb-4">
-                Share this QR code so followers can discover your schedule
-              </p>
-              <button
-                onClick={() => {
-                  const link = document.createElement('a')
-                  const qrElement = document.querySelector('canvas')
-                  if (qrElement) {
-                    link.href = qrElement.toDataURL()
-                    link.download = 'looper-qr.png'
-                    link.click()
-                  }
-                }}
-                className="w-full bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full text-sm font-semibold shadow-sm hover:shadow-md transition"
-              >
-                Download QR
-              </button>
-
-              <div className="mt-6 p-4 bg-sky-50 rounded-2xl">
-                <p className="text-xs text-gray-600 font-semibold mb-2">Your Link:</p>
-                <p className="text-xs text-sky-600 break-all font-mono">{teacherUrl}</p>
+              <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(teacherUrl)
-                    alert('Link copied!')
-                  }}
-                  className="mt-2 w-full bg-white hover:bg-sky-100 text-sky-600 border border-sky-200 px-3 py-1 rounded-full text-xs font-semibold shadow-sm transition"
+                  onClick={() => importFileRef.current?.click()}
+                  className="bg-white border border-[var(--looper-border-2)] rounded-[9px] px-3.5 py-2 text-sm font-semibold text-[var(--looper-ink)]"
                 >
-                  Copy Link
+                  Upload File
+                </button>
+                <button
+                  onClick={handleImportContacts}
+                  disabled={importing || !importText.trim()}
+                  className="bg-[var(--looper-blue)] disabled:opacity-40 text-white rounded-[9px] px-3.5 py-2 text-sm font-semibold"
+                >
+                  {importing ? 'Importing...' : 'Import Contacts'}
                 </button>
               </div>
+              {importResult && (
+                <p className="text-sm text-[var(--looper-blue)]">
+                  Added {importResult.added} new follower{importResult.added === 1 ? '' : 's'}
+                  {importResult.skipped > 0 ? ` (${importResult.skipped} already followed you)` : ''}.
+                </p>
+              )}
             </div>
-          </div>
-        </div>
+          )}
+        </section>
+
+        {/* Weekly note + history */}
+        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-7">
+          <h2 className="m-0 mb-1 text-lg font-extrabold text-[var(--looper-ink)]">Weekly note to followers</h2>
+          <p className="m-0 mb-4 text-[13px] text-[var(--looper-muted)]">Sent alongside your schedule every week</p>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="e.g. Class moved to 6pm this Thursday — see you there!"
+            className="w-full px-3.5 py-3.5 border border-[var(--looper-border-2)] rounded-[12px] focus:outline-none focus:ring-2 focus:ring-[var(--looper-link)] resize-none text-[14.5px]"
+            rows={3}
+          />
+          <button
+            onClick={handleSendNewsletter}
+            disabled={sending}
+            className="mt-3 bg-[var(--looper-blue)] disabled:opacity-40 text-white rounded-[10px] px-5 py-3 text-sm font-bold"
+          >
+            {sending ? 'Sending...' : 'Send to followers'}
+          </button>
+
+          {history.length > 0 && (
+            <div className="mt-6 pt-5 border-t border-[var(--looper-border)]">
+              <div className="text-xs font-bold text-[var(--looper-body-2)] uppercase tracking-wide mb-3">Past notes</div>
+              <div className="flex flex-col gap-3">
+                {history.map((h, i) => (
+                  <div key={i} className="flex gap-3.5">
+                    <span className="shrink-0 text-xs text-[var(--looper-muted)] w-16">{h.date}</span>
+                    <span className="text-[13.5px] text-[var(--looper-ink-2)] leading-relaxed">{h.preview}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   )

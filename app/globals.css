@@ -3,6 +3,26 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --looper-blue: oklch(46% 0.19 258);
+  --looper-blue-hover: oklch(40% 0.19 258);
+  --looper-link: oklch(55% 0.19 258);
+  --looper-link-hover: oklch(48% 0.19 258);
+  --looper-ink: oklch(22% 0.06 258);
+  --looper-ink-2: oklch(24% 0.05 258);
+  --looper-body: oklch(43% 0.05 258);
+  --looper-body-2: oklch(48% 0.04 258);
+  --looper-muted: oklch(50% 0.04 258);
+  --looper-border: oklch(90% 0.02 258);
+  --looper-border-2: oklch(87% 0.025 258);
+  --looper-page-bg: oklch(97% 0.015 258);
+  --looper-today-bg: oklch(96% 0.03 258);
+  --looper-today-border: oklch(82% 0.08 258);
+  --looper-chip-bg: oklch(96% 0.02 258);
+  --looper-active-text: oklch(42% 0.14 155);
+  --looper-active-bg: oklch(93% 0.05 155);
+  --looper-paused-text: oklch(43% 0.05 258);
+  --looper-paused-bg: oklch(90% 0.02 258);
 }
 
 @theme inline {
