@@ -8,13 +8,14 @@ type Teacher = {
   email: string
   name: string
   bio?: string
+  category?: string
 }
 
 type AuthContextType = {
   teacher: Teacher | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  signup: (email: string, password: string, name: string) => Promise<void>
+  signup: (email: string, password: string, name: string, category: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -62,10 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTeacher(data)
   }
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (email: string, password: string, name: string, category: string) => {
     const { data } = await supabase
       .from('teachers')
-      .insert([{ email, name, password_hash: password }])
+      .insert([{ email, name, password_hash: password, category }])
       .select()
       .single()
     

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import Dashboard from '@/components/Dashboard'
+import { CATEGORIES } from '@/lib/terminology'
 
 export default function Home() {
   const { teacher, loading } = useAuth()
@@ -12,6 +13,7 @@ export default function Home() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [category, setCategory] = useState('dance')
   const [error, setError] = useState('')
   const { login, signup } = useAuth()
 
@@ -35,7 +37,7 @@ export default function Home() {
       if (showLogin) {
         await login(email, password)
       } else {
-        await signup(email, password, name)
+        await signup(email, password, name, category)
       }
       router.refresh()
     } catch (err) {
@@ -64,6 +66,23 @@ export default function Home() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
                   required
                 />
+              </div>
+            )}
+
+            {!showLogin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  What best describes you?
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
               </div>
             )}
 

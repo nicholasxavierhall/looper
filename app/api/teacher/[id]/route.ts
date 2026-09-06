@@ -9,7 +9,7 @@ export async function GET(
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('id, name, bio')
+    .select('id, name, bio, category')
     .eq('id', id)
     .single()
 

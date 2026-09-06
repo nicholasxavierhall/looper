@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import { LogOut, Plus, Send } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
+import { getTerminology } from '@/lib/terminology'
 
 type Class = {
   id: string
@@ -42,6 +43,7 @@ export default function Dashboard() {
 
   const teacherUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/teacher/${teacher?.id}`
   const qrValue = teacherUrl
+  const terms = getTerminology(teacher?.category)
 
   useEffect(() => {
     if (!teacher) return
@@ -186,13 +188,13 @@ export default function Dashboard() {
             {/* Classes section */}
             <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-slate-900">Your Classes</h2>
+                <h2 className="text-xl font-bold text-slate-900">Your {terms.items}</h2>
                 <button
                   onClick={() => setShowNewClass(!showNewClass)}
                   className="flex items-center gap-2 bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
                 >
                   <Plus size={20} />
-                  Add Class
+                  {terms.addLabel}
                 </button>
               </div>
 
@@ -200,7 +202,7 @@ export default function Dashboard() {
                 <form onSubmit={handleAddClass} className="mb-6 p-4 bg-sky-50 rounded-2xl space-y-4 border-2 border-sky-200">
                   <input
                     type="text"
-                    placeholder="Class name"
+                    placeholder={`${terms.item} name`}
                     value={newClass.name}
                     onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-full"
@@ -259,13 +261,13 @@ export default function Dashboard() {
                     type="submit"
                     className="w-full bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
                   >
-                    Add Class
+                    {terms.addLabel}
                   </button>
                 </form>
               )}
 
               {classes.length === 0 ? (
-                <p className="text-gray-600 py-8 text-center">No classes yet. Add your first class!</p>
+                <p className="text-gray-600 py-8 text-center">No {terms.items.toLowerCase()} yet. Add your first {terms.item.toLowerCase()}!</p>
               ) : (
                 <div className="space-y-3">
                   {classes.map(cls => (
@@ -284,7 +286,7 @@ export default function Dashboard() {
                           onChange={() => handleToggleClass(cls.id, weeklyClasses[cls.id] ?? true)}
                           className="w-5 h-5 accent-sky-500 rounded"
                         />
-                        <span className="text-sm text-gray-700">Teaching this week</span>
+                        <span className="text-sm text-gray-700">{terms.activeLabel}</span>
                       </label>
                     </div>
                   ))}

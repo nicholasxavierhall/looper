@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Calendar, Mail, MapPin } from 'lucide-react'
+import { getTerminology } from '@/lib/terminology'
 
 type Teacher = {
   id: string
   name: string
   bio?: string
+  category?: string
 }
 
 type Class = {
@@ -170,11 +172,11 @@ END:VCALENDAR`
 
         {/* Classes */}
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Schedule</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">{getTerminology(teacher.category).scheduleLabel}</h2>
 
           {classes.length === 0 ? (
             <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-8 text-center">
-              <p className="text-gray-600">No classes scheduled yet</p>
+              <p className="text-gray-600">Nothing scheduled yet</p>
             </div>
           ) : (
             <div className="grid gap-4">

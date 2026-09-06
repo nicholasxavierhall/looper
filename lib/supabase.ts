@@ -10,6 +10,7 @@ export type Teacher = {
   email: string
   name: string
   bio?: string
+  category?: string
   created_at: string
 }
 
