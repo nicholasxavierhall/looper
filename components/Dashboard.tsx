@@ -229,7 +229,7 @@ export default function Dashboard() {
       <header className="bg-white border-b border-sky-100 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-sky-600">Looper</h1>
+            <img src="/looper-logo-blue.svg" alt="Looper" className="h-6 mb-1" />
             <p className="text-sm text-gray-600">Welcome, {teacher?.name}</p>
           </div>
           <button

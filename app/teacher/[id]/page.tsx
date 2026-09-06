@@ -236,10 +236,9 @@ END:VCALENDAR`
         </div>
 
         {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className="text-sky-900/60 text-sm">
-            Powered by <span className="font-bold">Looper</span>
-          </p>
+        <div className="mt-12 flex flex-col items-center gap-2">
+          <p className="text-sky-900/60 text-xs">Powered by</p>
+          <img src="/looper-logo-blue.svg" alt="Looper" className="h-4 opacity-60" />
         </div>
       </div>
     </div>

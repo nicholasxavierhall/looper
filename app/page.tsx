@@ -49,7 +49,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-8">
-          <h1 className="text-3xl font-bold text-center mb-2 text-sky-600">Looper</h1>
+          <img src="/looper-logo-blue.svg" alt="Looper" className="h-10 mx-auto mb-2" />
           <p className="text-center text-gray-600 mb-8">Share your weekly schedule as a Looper</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
