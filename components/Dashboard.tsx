@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
-import { LogOut, Plus, Send, Camera, Pencil } from 'lucide-react'
+import { LogOut, Plus, Send, Camera, Pencil, Upload } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { getTerminology } from '@/lib/terminology'
 
@@ -47,6 +47,11 @@ export default function Dashboard() {
   const [bioSaved, setBioSaved] = useState(false)
   const [editingBio, setEditingBio] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
+  const [showImport, setShowImport] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null)
+  const importFileRef = useRef<HTMLInputElement>(null)
 
   const teacherUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/teacher/${teacher?.id}`
   const qrValue = teacherUrl
@@ -213,6 +218,38 @@ export default function Dashboard() {
     } else {
       alert('No subscribers yet. Share your QR code to get subscribers!')
     }
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const text = await file.text()
+    setImportText((prev) => (prev ? `${prev}\n${text}` : text))
+  }
+
+  const handleImportContacts = async () => {
+    if (!teacher) return
+
+    const found = importText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []
+    const unique = Array.from(new Set(found.map((e) => e.toLowerCase())))
+
+    if (unique.length === 0) {
+      setImportResult({ added: 0, skipped: 0 })
+      return
+    }
+
+    setImporting(true)
+
+    const rows = unique.map((email) => ({ teacher_id: teacher.id, email }))
+    const { data } = await supabase
+      .from('subscribers')
+      .upsert(rows, { onConflict: 'teacher_id,email', ignoreDuplicates: true })
+      .select()
+
+    const added = data?.length || 0
+    setImportResult({ added, skipped: unique.length - added })
+    setImportText('')
+    setImporting(false)
   }
 
   const handleLogout = async () => {
@@ -430,6 +467,62 @@ export default function Dashboard() {
                       </label>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Import contacts section */}
+            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xl font-bold text-slate-900">Import Followers</h2>
+                <button
+                  onClick={() => setShowImport(!showImport)}
+                  className="flex items-center gap-2 bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
+                >
+                  <Upload size={18} />
+                  Import
+                </button>
+              </div>
+              {showImport && (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-gray-500">
+                    Already have a list from somewhere else? Paste it below, or upload a file (CSV, text export, anything with email addresses in it) — Looper will pull out the email addresses automatically.
+                  </p>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleImportFile}
+                    className="hidden"
+                  />
+                  <textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder="Paste emails here, or upload a file below"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
+                    rows={4}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => importFileRef.current?.click()}
+                      className="bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      onClick={handleImportContacts}
+                      disabled={importing || !importText.trim()}
+                      className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
+                    >
+                      {importing ? 'Importing...' : 'Import Contacts'}
+                    </button>
+                  </div>
+                  {importResult && (
+                    <p className="text-sm text-sky-700">
+                      Added {importResult.added} new follower{importResult.added === 1 ? '' : 's'}
+                      {importResult.skipped > 0 ? ` (${importResult.skipped} already followed you)` : ''}.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
