@@ -166,12 +166,12 @@ When ready to go live:
 
 ## API Keys Stored
 
-Your Supabase and Resend keys are in `.env.local`:
-- `NEXT_PUBLIC_SUPABASE_URL` = https://waeksobthfpfyozwpkxl.supabase.co
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = sb_publishable_btjknOTSXr9Gv6HZeal1Ng_cfdKKrl3
-- `RESEND_API_KEY` = REDACTED
+Your Supabase and Resend keys are in `.env.local` (not committed to git):
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `RESEND_API_KEY`
 
-These are safe to use in code (the "public" keys are meant to be public). The secret ones are in environment variables only.
+The Supabase URL and anon key are safe to expose in client code (they're meant to be public). The Resend key is a secret and must only ever live in `.env.local`, never in a committed file.
 
 ## Testing Checklist
 
