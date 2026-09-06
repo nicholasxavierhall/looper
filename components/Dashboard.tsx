@@ -248,8 +248,7 @@ export default function Dashboard() {
           <div className="md:col-span-2 space-y-8">
             {/* Profile section */}
             <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">Your Profile</h2>
-              <div className="flex items-center gap-6 mb-6">
+              <div className="flex items-center gap-5 mb-6">
                 <input
                   ref={photoInputRef}
                   type="file"
@@ -260,21 +259,21 @@ export default function Dashboard() {
                 <button
                   onClick={() => photoInputRef.current?.click()}
                   disabled={uploadingPhoto}
-                  className="group relative w-20 h-20 rounded-full shrink-0"
+                  className="group relative w-32 h-32 rounded-full shrink-0"
                 >
                   {photoUrl ? (
                     <img
                       src={photoUrl}
                       alt={teacher?.name}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-sky-100"
+                      className="w-32 h-32 rounded-full object-cover border-2 border-sky-100"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-2xl font-bold">
+                    <div className="w-32 h-32 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-4xl font-bold">
                       {teacher?.name?.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                    <Camera size={22} className="text-white" />
+                    <Camera size={26} className="text-white" />
                   </div>
                   {uploadingPhoto && (
                     <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
@@ -282,10 +281,9 @@ export default function Dashboard() {
                     </div>
                   )}
                 </button>
-                <p className="text-sm text-gray-500">Hover your photo to change it</p>
+                <p className="text-xs text-gray-400">Hover to change photo</p>
               </div>
 
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
               {editingBio ? (
                 <>
                   <textarea
