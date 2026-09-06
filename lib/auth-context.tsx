@@ -52,10 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!data) {
       throw new Error('Teacher not found')
     }
-    
+
     // Simple password check (in production, use proper hashing)
-    const storedPassword = localStorage.getItem(`looper_pw_${email}`)
-    if (storedPassword !== password) {
+    if (data.password_hash !== password) {
       throw new Error('Invalid password')
     }
     
