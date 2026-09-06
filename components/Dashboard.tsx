@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { LogOut, Plus, Send, Camera, Pencil } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { getTerminology } from '@/lib/terminology'
-import LooperLogo from '@/components/LooperLogo'
 
 type Class = {
   id: string
@@ -230,7 +229,7 @@ export default function Dashboard() {
       <header className="bg-white border-b border-sky-100 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
           <div>
-            <LooperLogo variant="blue" className="h-8 block mb-1" />
+            <img src="/looper-logo.png" alt="Looper" className="h-8 block mb-1" />
             <p className="text-sm text-gray-600">Welcome, {teacher?.name}</p>
           </div>
           <button

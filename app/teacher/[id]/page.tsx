@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Calendar, Mail, MapPin } from 'lucide-react'
 import { getTerminology } from '@/lib/terminology'
-import LooperLogo from '@/components/LooperLogo'
 
 type Teacher = {
   id: string
@@ -239,7 +238,7 @@ END:VCALENDAR`
         {/* Footer */}
         <div className="mt-12 flex flex-col items-center gap-2">
           <p className="text-sky-900/60 text-xs">Powered by</p>
-          <LooperLogo variant="blue" className="h-5 opacity-60" />
+          <img src="/looper-logo.png" alt="Looper" className="h-5 opacity-60" />
         </div>
       </div>
     </div>
