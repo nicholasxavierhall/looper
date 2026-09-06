@@ -341,16 +341,16 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--looper-page-bg)]">
       <header className="bg-white border-b border-[var(--looper-border)]">
-        <div className="max-w-[1080px] mx-auto px-10 py-[18px] flex justify-between items-center">
-          <img src="/looper-logo.png" alt="Looper" className="h-6 block" />
+        <div className="max-w-[1080px] mx-auto px-4 py-3.5 md:px-10 md:py-[18px] flex justify-between items-center gap-2">
+          <img src="/looper-logo.png" alt="Looper" className="h-5 md:h-6 block shrink-0" />
 
-          <div className="flex items-center gap-2.5 relative">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
             <button
               onClick={() => setShowShare(!showShare)}
-              className="flex items-center gap-1.5 bg-[var(--looper-chip-bg)] border border-[var(--looper-border-2)] text-[var(--looper-blue)] rounded-[9px] px-3.5 py-2 text-sm font-semibold"
+              className="flex items-center gap-1.5 bg-[var(--looper-chip-bg)] border border-[var(--looper-border-2)] text-[var(--looper-blue)] rounded-[9px] px-2.5 py-2 sm:px-3.5 text-sm font-semibold whitespace-nowrap"
             >
-              <span className="w-3.5 h-3.5 border-2 border-current rounded-[3px] inline-block" />
-              Share schedule
+              <span className="w-3.5 h-3.5 border-2 border-current rounded-[3px] inline-block shrink-0" />
+              <span className="hidden sm:inline">Share schedule</span>
             </button>
 
             {showShare && (
@@ -360,7 +360,7 @@ export default function Dashboard() {
                   onClick={() => setShowShare(false)}
                   aria-label="Close"
                 />
-                <div className="absolute top-12 right-0 w-[260px] bg-white border border-[var(--looper-border-2)] rounded-[14px] shadow-xl p-5 z-20 text-center">
+                <div className="fixed top-16 left-4 right-4 w-auto sm:absolute sm:top-12 sm:left-auto sm:right-0 sm:w-[260px] bg-white border border-[var(--looper-border-2)] rounded-[14px] shadow-xl p-5 z-20 text-center">
                   <div className="bg-[var(--looper-chip-bg)] rounded-[10px] flex justify-center p-2 mb-3.5">
                     <QRCodeCanvas value={teacherUrl} size={130} level="H" includeMargin={false} />
                   </div>
@@ -388,7 +388,7 @@ export default function Dashboard() {
             </div>
             <button
               onClick={handleLogout}
-              className="text-sm font-semibold text-[var(--looper-body)] border border-[var(--looper-border-2)] rounded-[8px] px-3.5 py-1.5"
+              className="text-sm font-semibold text-[var(--looper-body)] border border-[var(--looper-border-2)] rounded-[8px] px-2.5 py-1.5 sm:px-3.5 whitespace-nowrap"
             >
               Log out
             </button>
@@ -396,9 +396,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-[1080px] mx-auto px-10 py-12 pb-[90px] flex flex-col gap-10">
+      <main className="max-w-[1080px] mx-auto px-4 py-7 pb-14 md:px-10 md:py-12 md:pb-[90px] flex flex-col gap-8 md:gap-10">
         {/* Editorial profile hero */}
-        <section className="flex gap-8 items-end flex-wrap">
+        <section className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start sm:items-end">
           <input
             ref={photoInputRef}
             type="file"
@@ -434,7 +434,7 @@ export default function Dashboard() {
                 {terms.roleLabel}
               </span>
             </div>
-            <h1 className="m-0 text-[44px] font-black tracking-tight leading-none text-[var(--looper-ink)]">
+            <h1 className="m-0 text-[32px] sm:text-[44px] font-black tracking-tight leading-none text-[var(--looper-ink)] break-words">
               {teacher?.name}
             </h1>
 
@@ -524,7 +524,7 @@ export default function Dashboard() {
         </section>
 
         {/* Recurring schedule */}
-        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-7">
+        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-4 sm:p-7">
           <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
             <div>
               <h2 className="m-0 text-lg font-extrabold text-[var(--looper-ink)]">Recurring schedule</h2>
@@ -650,7 +650,7 @@ export default function Dashboard() {
         </section>
 
         {/* Import contacts */}
-        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-7">
+        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-4 sm:p-7">
           <div className="flex justify-between items-center gap-3 flex-wrap">
             <div>
               <h2 className="m-0 text-lg font-extrabold text-[var(--looper-ink)]">Import Followers</h2>
@@ -709,7 +709,7 @@ export default function Dashboard() {
         </section>
 
         {/* Weekly note + history */}
-        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-7">
+        <section className="bg-white rounded-[16px] border border-[var(--looper-border)] p-4 sm:p-7">
           <h2 className="m-0 mb-1 text-lg font-extrabold text-[var(--looper-ink)]">Weekly note to followers</h2>
           <p className="m-0 mb-4 text-[13px] text-[var(--looper-muted)]">Sent alongside your schedule every week</p>
           <textarea

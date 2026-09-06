@@ -161,19 +161,19 @@ END:VCALENDAR`
               <Mail size={20} className="text-sky-600" />
               <h2 className="text-lg font-semibold text-slate-900">Follow {teacher.name} on Looper</h2>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 value={subscribeEmail}
                 onChange={(e) => setSubscribeEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-sky-400"
+                className="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-sky-400"
                 required
               />
               <button
                 type="submit"
                 disabled={subscribing}
-                className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 px-6 py-2 rounded-full font-semibold shadow-md border border-sky-200 hover:shadow-lg transition"
+                className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 px-6 py-2 rounded-full font-semibold shadow-md border border-sky-200 hover:shadow-lg transition shrink-0"
               >
                 {subscribing ? 'Following...' : 'Follow'}
               </button>
