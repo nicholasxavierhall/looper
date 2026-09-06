@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
-import { LogOut, Plus, Send } from 'lucide-react'
+import { LogOut, Plus, Send, Camera, Pencil } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { getTerminology } from '@/lib/terminology'
 
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [bio, setBio] = useState('')
   const [savingBio, setSavingBio] = useState(false)
   const [bioSaved, setBioSaved] = useState(false)
+  const [editingBio, setEditingBio] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const teacherUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/teacher/${teacher?.id}`
@@ -95,8 +96,14 @@ export default function Dashboard() {
       .eq('id', teacher.id)
 
     setSavingBio(false)
+    setEditingBio(false)
     setBioSaved(true)
     setTimeout(() => setBioSaved(false), 2000)
+  }
+
+  const handleCancelBio = () => {
+    setBio(teacher?.bio || '')
+    setEditingBio(false)
   }
 
   useEffect(() => {
@@ -243,7 +250,18 @@ export default function Dashboard() {
             <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
               <h2 className="text-xl font-bold text-slate-900 mb-4">Your Profile</h2>
               <div className="flex items-center gap-6 mb-6">
-                <div className="relative">
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="group relative w-20 h-20 rounded-full shrink-0"
+                >
                   {photoUrl ? (
                     <img
                       src={photoUrl}
@@ -255,40 +273,57 @@ export default function Dashboard() {
                       {teacher?.name?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                </div>
-                <div>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => photoInputRef.current?.click()}
-                    disabled={uploadingPhoto}
-                    className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
-                  >
-                    {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
-                  </button>
-                </div>
+                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                    <Camera size={22} className="text-white" />
+                  </div>
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                      <span className="text-white text-xs font-semibold">Uploading...</span>
+                    </div>
+                  )}
+                </button>
+                <p className="text-sm text-gray-500">Hover your photo to change it</p>
               </div>
 
               <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell your followers a bit about you"
-                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
-                rows={3}
-              />
-              <button
-                onClick={handleSaveBio}
-                disabled={savingBio}
-                className="mt-3 bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
-              >
-                {savingBio ? 'Saving...' : bioSaved ? 'Saved ✓' : 'Save Bio'}
-              </button>
+              {editingBio ? (
+                <>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Tell your followers a bit about you"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
+                    rows={3}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={handleSaveBio}
+                      disabled={savingBio}
+                      className="bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition text-sm"
+                    >
+                      {savingBio ? 'Saving...' : 'Save Bio'}
+                    </button>
+                    <button
+                      onClick={handleCancelBio}
+                      className="text-gray-500 hover:text-gray-700 px-4 py-2 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => setEditingBio(true)}
+                  className="group w-full text-left px-4 py-3 border border-transparent hover:border-sky-200 rounded-2xl transition flex items-start justify-between gap-2"
+                >
+                  <span className={bio ? 'text-gray-700' : 'text-gray-400 italic'}>
+                    {bio || 'Tell your followers a bit about you'}
+                  </span>
+                  <Pencil size={16} className="text-sky-600 opacity-0 group-hover:opacity-100 transition shrink-0 mt-1" />
+                </button>
+              )}
+              {bioSaved && <p className="text-sky-700 text-sm mt-2">Saved ✓</p>}
             </div>
 
             {/* Classes section */}
