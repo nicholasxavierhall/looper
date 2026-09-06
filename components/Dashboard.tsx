@@ -398,7 +398,7 @@ export default function Dashboard() {
 
       <main className="max-w-[1080px] mx-auto px-4 py-7 pb-14 md:px-10 md:py-12 md:pb-[90px] flex flex-col gap-8 md:gap-10">
         {/* Editorial profile hero */}
-        <section className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start sm:items-end">
+        <section className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-end text-center sm:text-left">
           <input
             ref={photoInputRef}
             type="file"
@@ -427,7 +427,7 @@ export default function Dashboard() {
             </div>
           </button>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 flex flex-col items-center sm:items-start">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--looper-link)]" />
               <span className="text-xs font-bold text-[var(--looper-blue)] uppercase tracking-wider">
@@ -467,7 +467,7 @@ export default function Dashboard() {
             ) : (
               <button
                 onClick={() => setEditingBio(true)}
-                className="group text-left mt-3.5 flex items-start gap-2"
+                className="group text-center sm:text-left mt-3.5 flex items-start gap-2"
               >
                 <p className={`m-0 text-[15.5px] leading-relaxed max-w-[56ch] ${bio ? 'text-[var(--looper-body)]' : 'text-gray-400 italic'}`}>
                   {bio || 'Tell your followers a bit about you'}
@@ -477,7 +477,7 @@ export default function Dashboard() {
             )}
             {bioSaved && <p className="text-[var(--looper-blue)] text-sm mt-1">Saved ✓</p>}
 
-            <div className="flex gap-5 mt-4">
+            <div className="flex gap-5 mt-4 justify-center sm:justify-start">
               <div>
                 <span className="text-lg font-extrabold text-[var(--looper-ink)]">{followerCount}</span>{' '}
                 <span className="text-[13px] text-[var(--looper-muted)]">followers</span>
