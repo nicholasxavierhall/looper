@@ -162,16 +162,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100">
+      <header className="bg-white border-b border-sky-100 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Looper</h1>
+            <h1 className="text-2xl font-bold text-sky-600">Looper</h1>
             <p className="text-sm text-gray-600">Welcome, {teacher?.name}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-sky-50 rounded-full"
           >
             <LogOut size={20} />
             Logout
@@ -184,12 +184,12 @@ export default function Dashboard() {
           {/* Main content */}
           <div className="md:col-span-2 space-y-8">
             {/* Classes section */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-slate-900">Your Classes</h2>
                 <button
                   onClick={() => setShowNewClass(!showNewClass)}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="flex items-center gap-2 bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
                 >
                   <Plus size={20} />
                   Add Class
@@ -197,20 +197,20 @@ export default function Dashboard() {
               </div>
 
               {showNewClass && (
-                <form onSubmit={handleAddClass} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4 border-2 border-blue-200">
+                <form onSubmit={handleAddClass} className="mb-6 p-4 bg-sky-50 rounded-2xl space-y-4 border-2 border-sky-200">
                   <input
                     type="text"
                     placeholder="Class name"
                     value={newClass.name}
                     onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-full"
                     required
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <select
                       value={newClass.day_of_week}
                       onChange={(e) => setNewClass({ ...newClass, day_of_week: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                      className="px-3 py-2 border border-gray-300 rounded-full"
                     >
                       {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                         <option key={day} value={day}>{day}</option>
@@ -220,7 +220,7 @@ export default function Dashboard() {
                       type="time"
                       value={newClass.time}
                       onChange={(e) => setNewClass({ ...newClass, time: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                      className="px-3 py-2 border border-gray-300 rounded-full"
                       required
                     />
                   </div>
@@ -229,7 +229,7 @@ export default function Dashboard() {
                     placeholder="Location/Studio"
                     value={newClass.location}
                     onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-full"
                     required
                   />
                   <input
@@ -237,7 +237,7 @@ export default function Dashboard() {
                     placeholder="Address (optional)"
                     value={newClass.address}
                     onChange={(e) => setNewClass({ ...newClass, address: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-full"
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <input
@@ -245,19 +245,19 @@ export default function Dashboard() {
                       placeholder="Class type"
                       value={newClass.class_type}
                       onChange={(e) => setNewClass({ ...newClass, class_type: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                      className="px-3 py-2 border border-gray-300 rounded-full"
                     />
                     <input
                       type="number"
                       placeholder="Cost (optional)"
                       value={newClass.cost || ''}
                       onChange={(e) => setNewClass({ ...newClass, cost: e.target.value ? parseFloat(e.target.value) : 0 })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                      className="px-3 py-2 border border-gray-300 rounded-full"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold"
+                    className="w-full bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full font-semibold shadow-sm hover:shadow-md transition"
                   >
                     Add Class
                   </button>
@@ -269,7 +269,7 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-3">
                   {classes.map(cls => (
-                    <div key={cls.id} className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition">
+                    <div key={cls.id} className="p-4 border border-sky-100 rounded-2xl hover:border-sky-300 transition">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h3 className="font-semibold text-slate-900">{cls.name}</h3>
@@ -282,7 +282,7 @@ export default function Dashboard() {
                           type="checkbox"
                           checked={weeklyClasses[cls.id] ?? true}
                           onChange={() => handleToggleClass(cls.id, weeklyClasses[cls.id] ?? true)}
-                          className="w-5 h-5 accent-blue-600 rounded"
+                          className="w-5 h-5 accent-sky-500 rounded"
                         />
                         <span className="text-sm text-gray-700">Teaching this week</span>
                       </label>
@@ -293,19 +293,19 @@ export default function Dashboard() {
             </div>
 
             {/* Newsletter section */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6">
               <h2 className="text-xl font-bold text-slate-900 mb-4">This Week's Message</h2>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Add a note to your subscribers (optional)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="Add a note to your followers (optional)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
                 rows={4}
               />
               <button
                 onClick={handleSendNewsletter}
                 disabled={sending}
-                className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold"
+                className="mt-4 w-full flex items-center justify-center gap-2 bg-white hover:bg-sky-50 disabled:bg-gray-100 disabled:text-gray-400 text-sky-600 border border-sky-200 px-6 py-3 rounded-full font-semibold shadow-md hover:shadow-lg transition"
               >
                 <Send size={20} />
                 {sending ? 'Sending...' : 'Send Newsletter'}
@@ -315,9 +315,9 @@ export default function Dashboard() {
 
           {/* Sidebar - QR Code */}
           <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-24">
+            <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-6 sticky top-24">
               <h2 className="text-xl font-bold text-slate-900 mb-4 text-center">Share Your QR</h2>
-              <div className="bg-gray-100 p-6 rounded-lg flex justify-center mb-4">
+              <div className="bg-sky-50 p-6 rounded-2xl flex justify-center mb-4">
                 <QRCodeCanvas value={qrValue} size={256} level="H" includeMargin={true} />
               </div>
               <p className="text-sm text-gray-600 text-center mb-4">
@@ -333,20 +333,20 @@ export default function Dashboard() {
                     link.click()
                   }
                 }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                className="w-full bg-white hover:bg-sky-50 text-sky-600 border border-sky-200 px-4 py-2 rounded-full text-sm font-semibold shadow-sm hover:shadow-md transition"
               >
                 Download QR
               </button>
-              
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+
+              <div className="mt-6 p-4 bg-sky-50 rounded-2xl">
                 <p className="text-xs text-gray-600 font-semibold mb-2">Your Link:</p>
-                <p className="text-xs text-blue-600 break-all font-mono">{teacherUrl}</p>
+                <p className="text-xs text-sky-600 break-all font-mono">{teacherUrl}</p>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(teacherUrl)
                     alert('Link copied!')
                   }}
-                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-semibold"
+                  className="mt-2 w-full bg-white hover:bg-sky-100 text-sky-600 border border-sky-200 px-3 py-1 rounded-full text-xs font-semibold shadow-sm transition"
                 >
                   Copy Link
                 </button>

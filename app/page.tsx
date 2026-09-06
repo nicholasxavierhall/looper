@@ -17,8 +17,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Loading...</p>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-sky-100 to-blue-200">
+        <p className="text-sky-900">Loading...</p>
       </div>
     )
   }
@@ -30,7 +30,7 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
+
     try {
       if (showLogin) {
         await login(email, password)
@@ -44,11 +44,11 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-center mb-2 text-slate-900">Looper</h1>
-          <p className="text-center text-gray-600 mb-8">Share your weekly schedule</p>
+        <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-8">
+          <h1 className="text-3xl font-bold text-center mb-2 text-sky-600">Looper</h1>
+          <p className="text-center text-gray-600 mb-8">Share your weekly schedule as a Looper</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!showLogin && (
@@ -61,12 +61,12 @@ export default function Home() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
                   required
                 />
               </div>
             )}
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -76,7 +76,7 @@ export default function Home() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
                 required
               />
             </div>
@@ -90,20 +90,20 @@ export default function Home() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-400"
                 required
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl">
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+              className="w-full bg-white text-sky-600 font-semibold py-3 rounded-full shadow-md border border-sky-200 hover:shadow-lg hover:bg-sky-50 transition"
             >
               {showLogin ? 'Login' : 'Sign Up'}
             </button>
@@ -117,7 +117,7 @@ export default function Home() {
                   setShowLogin(!showLogin)
                   setError('')
                 }}
-                className="text-blue-600 hover:text-blue-700 font-semibold"
+                className="text-sky-600 hover:text-sky-700 font-semibold"
               >
                 {showLogin ? 'Sign up' : 'Login'}
               </button>
