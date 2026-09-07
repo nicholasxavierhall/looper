@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(
   request: NextRequest,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const { data: teacher } = await supabase
+  const { data: teacher } = await supabaseAdmin
     .from('teachers')
     .select('id, name, bio, category, photo_url')
     .eq('id', id)
@@ -17,11 +17,16 @@ export async function GET(
     return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
   }
 
-  const { data: classes } = await supabase
+  const { data: classes } = await supabaseAdmin
     .from('classes')
     .select('*')
     .eq('teacher_id', id)
     .order('day_of_week')
 
-  return NextResponse.json({ teacher, classes: classes || [] })
+  const { count: followerCount } = await supabaseAdmin
+    .from('subscribers')
+    .select('id', { count: 'exact', head: true })
+    .eq('teacher_id', id)
+
+  return NextResponse.json({ teacher, classes: classes || [], followerCount: followerCount || 0 })
 }

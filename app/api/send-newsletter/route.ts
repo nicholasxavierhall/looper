@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const { teacherId, weekOf, message } = await request.json()
 
     // Get teacher info
-    const { data: teacher } = await supabase
+    const { data: teacher } = await supabaseAdmin
       .from('teachers')
       .select('*')
       .eq('id', teacherId)
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get active classes for this week
-    const { data: weeklyClasses } = await supabase
+    const { data: weeklyClasses } = await supabaseAdmin
       .from('weekly_classes')
       .select(`
         *,
@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true)
 
     // Get subscribers
-    const { data: subscribers } = await supabase
+    const { data: subscribers } = await supabaseAdmin
       .from('subscribers')
       .select('email')
       .eq('teacher_id', teacherId)
 
     if (!subscribers || subscribers.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'No subscribers to send to',
         sent: 0
       })
@@ -53,32 +53,35 @@ export async function POST(request: NextRequest) {
       </div>
     `).join('')
 
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1>${teacher.name}'s Weekly Classes</h1>
-        ${message ? `<p style="font-style: italic; color: #666;">${message}</p>` : ''}
-        <h2>This Week's Classes</h2>
-        ${classesHtml}
-        <p style="color: #999; font-size: 12px; margin-top: 20px;">
-          You're receiving this because you subscribed to ${teacher.name}'s newsletter.
-        </p>
-      </div>
-    `
+    const origin = request.nextUrl.origin
 
     // Send emails
     const results = await Promise.all(
-      subscribers.map(sub =>
-        resend.emails.send({
+      subscribers.map(sub => {
+        const unsubscribeUrl = `${origin}/api/unsubscribe?teacherId=${teacherId}&email=${encodeURIComponent(sub.email)}`
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1>${teacher.name}'s Weekly Classes</h1>
+            ${message ? `<p style="font-style: italic; color: #666;">${message}</p>` : ''}
+            <h2>This Week's Classes</h2>
+            ${classesHtml}
+            <p style="color: #999; font-size: 12px; margin-top: 20px;">
+              You're receiving this because you subscribed to ${teacher.name}'s newsletter.
+              <a href="${unsubscribeUrl}" style="color: #999;">Unsubscribe</a>
+            </p>
+          </div>
+        `
+        return resend.emails.send({
           from: 'Looper <onboarding@resend.dev>',
           to: sub.email,
           subject: `${teacher.name}'s Classes - Week of ${weekOf}`,
           html: emailHtml,
         })
-      )
+      })
     )
 
     // Update weekly_updates with sent_at
-    await supabase
+    await supabaseAdmin
       .from('weekly_updates')
       .update({ sent_at: new Date().toISOString() })
       .eq('teacher_id', teacherId)

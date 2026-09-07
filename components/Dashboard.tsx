@@ -32,7 +32,7 @@ function formatTime(time: string) {
 }
 
 export default function Dashboard() {
-  const { teacher, logout } = useAuth()
+  const { teacher, logout, refreshTeacher } = useAuth()
   const [classes, setClasses] = useState<Class[]>([])
   const [weeklyClasses, setWeeklyClasses] = useState<Record<string, boolean>>({})
   const [message, setMessage] = useState('')
@@ -90,12 +90,14 @@ export default function Dashboard() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
       const newUrl = `${urlData.publicUrl}?t=${Date.now()}`
 
-      await supabase
-        .from('teachers')
-        .update({ photo_url: newUrl })
-        .eq('id', teacher.id)
+      await fetch('/api/teacher/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacherId: teacher.id, photo_url: newUrl })
+      })
 
       setPhotoUrl(newUrl)
+      refreshTeacher({ photo_url: newUrl })
     }
 
     setUploadingPhoto(false)
@@ -105,11 +107,13 @@ export default function Dashboard() {
     if (!teacher) return
     setSavingBio(true)
 
-    await supabase
-      .from('teachers')
-      .update({ bio })
-      .eq('id', teacher.id)
+    await fetch('/api/teacher/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherId: teacher.id, bio })
+    })
 
+    refreshTeacher({ bio })
     setSavingBio(false)
     setEditingBio(false)
     setBioSaved(true)
@@ -152,11 +156,11 @@ export default function Dashboard() {
   }
 
   const loadFollowerCount = async () => {
-    const { count } = await supabase
-      .from('subscribers')
-      .select('id', { count: 'exact', head: true })
-      .eq('teacher_id', teacher!.id)
-    setFollowerCount(count || 0)
+    const res = await fetch(`/api/teacher/${teacher!.id}`)
+    if (res.ok) {
+      const { followerCount } = await res.json()
+      setFollowerCount(followerCount || 0)
+    }
   }
 
   const loadHistory = async () => {
@@ -301,14 +305,14 @@ export default function Dashboard() {
 
     setImporting(true)
 
-    const rows = unique.map((email) => ({ teacher_id: teacher.id, email }))
-    const { data } = await supabase
-      .from('subscribers')
-      .upsert(rows, { onConflict: 'teacher_id,email', ignoreDuplicates: true })
-      .select()
+    const res = await fetch('/api/subscribers/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teacherId: teacher.id, emails: unique })
+    })
+    const result = await res.json()
 
-    const added = data?.length || 0
-    setImportResult({ added, skipped: unique.length - added })
+    setImportResult({ added: result.added || 0, skipped: result.skipped || 0 })
     setImportText('')
     setImporting(false)
     loadFollowerCount()

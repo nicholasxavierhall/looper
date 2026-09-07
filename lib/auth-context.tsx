@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { supabase } from '@/lib/supabase'
 
 type Teacher = {
   id: string
@@ -18,6 +17,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, name: string, category: string) => Promise<void>
   logout: () => Promise<void>
+  refreshTeacher: (updates: Partial<Teacher>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -30,13 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = async () => {
       const token = localStorage.getItem('looper_teacher_id')
       if (token) {
-        const { data } = await supabase
-          .from('teachers')
-          .select('*')
-          .eq('id', token)
-          .single()
-        if (data) {
-          setTeacher(data)
+        const res = await fetch(`/api/auth/me?id=${token}`)
+        if (res.ok) {
+          const { teacher } = await res.json()
+          setTeacher(teacher)
         }
       }
       setLoading(false)
@@ -45,37 +42,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
-    const { data } = await supabase
-      .from('teachers')
-      .select('*')
-      .eq('email', email)
-      .single()
-    
-    if (!data) {
-      throw new Error('Teacher not found')
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+
+    const result = await res.json()
+    if (!res.ok) {
+      throw new Error(result.error || 'Login failed')
     }
 
-    // Simple password check (in production, use proper hashing)
-    if (data.password_hash !== password) {
-      throw new Error('Invalid password')
-    }
-    
-    localStorage.setItem('looper_teacher_id', data.id)
-    setTeacher(data)
+    localStorage.setItem('looper_teacher_id', result.teacher.id)
+    setTeacher(result.teacher)
   }
 
   const signup = async (email: string, password: string, name: string, category: string) => {
-    const { data } = await supabase
-      .from('teachers')
-      .insert([{ email, name, password_hash: password, category }])
-      .select()
-      .single()
-    
-    if (data) {
-      localStorage.setItem(`looper_pw_${email}`, password)
-      localStorage.setItem('looper_teacher_id', data.id)
-      setTeacher(data)
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name, category })
+    })
+
+    const result = await res.json()
+    if (!res.ok) {
+      throw new Error(result.error || 'Sign up failed')
     }
+
+    localStorage.setItem('looper_teacher_id', result.teacher.id)
+    setTeacher(result.teacher)
   }
 
   const logout = async () => {
@@ -83,8 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTeacher(null)
   }
 
+  const refreshTeacher = (updates: Partial<Teacher>) => {
+    setTeacher(prev => (prev ? { ...prev, ...updates } : prev))
+  }
+
   return (
-    <AuthContext.Provider value={{ teacher, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ teacher, loading, login, signup, logout, refreshTeacher }}>
       {children}
     </AuthContext.Provider>
   )
