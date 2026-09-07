@@ -62,6 +62,7 @@ export default function Dashboard() {
   const importFileRef = useRef<HTMLInputElement>(null)
   const [followerCount, setFollowerCount] = useState(0)
   const [history, setHistory] = useState<{ date: string; preview: string }[]>([])
+  const [recentFollowers, setRecentFollowers] = useState<{ email: string; subscribed_at: string }[]>([])
   const [showShare, setShowShare] = useState(false)
 
   const teacherUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/teacher/${teacher?.id}`
@@ -130,6 +131,7 @@ export default function Dashboard() {
     loadClasses()
     loadFollowerCount()
     loadHistory()
+    loadRecentFollowers()
   }, [teacher])
 
   const loadClasses = async () => {
@@ -160,6 +162,14 @@ export default function Dashboard() {
     if (res.ok) {
       const { followerCount } = await res.json()
       setFollowerCount(followerCount || 0)
+    }
+  }
+
+  const loadRecentFollowers = async () => {
+    const res = await fetch(`/api/teacher/followers?teacherId=${teacher!.id}`)
+    if (res.ok) {
+      const { followers } = await res.json()
+      setRecentFollowers(followers || [])
     }
   }
 
@@ -316,6 +326,7 @@ export default function Dashboard() {
     setImportText('')
     setImporting(false)
     loadFollowerCount()
+    loadRecentFollowers()
   }
 
   const handleLogout = async () => {
@@ -400,7 +411,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-[1080px] mx-auto px-4 py-7 pb-14 md:px-10 md:py-12 md:pb-[90px] flex flex-col gap-8 md:gap-10">
+      <main className="max-w-[1280px] mx-auto px-4 py-7 pb-14 md:px-10 md:py-12 md:pb-[90px] lg:flex lg:items-start lg:gap-10">
+      <div className="flex-1 min-w-0 flex flex-col gap-8 md:gap-10">
         {/* Editorial profile hero */}
         <section className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-end text-center sm:text-left">
           <input
@@ -745,6 +757,33 @@ export default function Dashboard() {
             </div>
           )}
         </section>
+      </div>
+
+      <aside className="mt-8 lg:mt-0 lg:w-[300px] lg:shrink-0">
+        <div className="bg-white rounded-[16px] border border-[var(--looper-border)] p-6 lg:sticky lg:top-8">
+          <h2 className="m-0 mb-1 text-base font-extrabold text-[var(--looper-ink)]">Recent Followers</h2>
+          <p className="m-0 mb-4 text-[13px] text-[var(--looper-muted)]">Who's joined lately</p>
+          {recentFollowers.length === 0 ? (
+            <p className="text-sm text-[var(--looper-muted)]">No followers yet</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {recentFollowers.map((f, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[var(--looper-chip-bg)] text-[var(--looper-blue)] flex items-center justify-center text-xs font-bold shrink-0">
+                    {f.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold text-[var(--looper-ink-2)] truncate">{f.email}</div>
+                    <div className="text-xs text-[var(--looper-muted)]">
+                      {new Date(f.subscribed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
       </main>
     </div>
   )
